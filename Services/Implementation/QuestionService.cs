@@ -4,6 +4,7 @@ using DevCodeX_API.Data.Filters;
 using DevCodeX_API.Data.Shared;
 using DevCodeX_API.Repositories.Interfaces;
 using DevCodeX_API.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace DevCodeX_API.Services.Implementation
@@ -56,8 +57,8 @@ namespace DevCodeX_API.Services.Implementation
                 baseQuery = baseQuery.Where(q => q.DifficultyLevel.Equals(filter.DifficultyLevel.Value));
             }
 
-            // Get total count before pagination
-            int totalCount = baseQuery.Count();
+            // Get total count before pagination (using EF Core async)
+            int totalCount = await baseQuery.CountAsync();
 
             // Apply pagination and ordering
             IQueryable<Question> pagedQuery = baseQuery
@@ -67,17 +68,17 @@ namespace DevCodeX_API.Services.Implementation
 
             IQueryable<Technology> technologyServices = await _technologyService.Where(t => !t.IsDeleted);
 
-            // Join with technologies and project to DTO
-            List<QuestionListDto> items = (from q in pagedQuery
-                                           join t in technologyServices on q.TechnologyId equals t.Id
-                                           select new QuestionListDto
-                                           {
-                                               Id = q.Id,
-                                               Title = q.Title,
-                                               TechnologyName = t.Name,
-                                               DifficultyLevel = q.DifficultyLevel,
-                                               CreatedAt = q.CreatedAt
-                                           }).ToList();
+            // Join with technologies and project to DTO (using EF Core async)
+            List<QuestionListDto> items = await (from q in pagedQuery
+                 join t in technologyServices on q.TechnologyId equals t.Id
+                 select new QuestionListDto
+                 {
+                     Id = q.Id,
+                     Title = q.Title,
+                     TechnologyName = t.Name,
+                     DifficultyLevel = q.DifficultyLevel,
+                     CreatedAt = q.CreatedAt
+                 }).ToListAsync();
 
             return new PaginatedList<QuestionListDto>(items, totalCount, filter.PageIndex, filter.PageSize);
         }

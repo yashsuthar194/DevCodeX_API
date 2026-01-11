@@ -28,8 +28,11 @@ else
     app.UseHsts(); // HTTP Strict Transport Security
 }
 
-// 2. HTTPS Redirection
-app.UseHttpsRedirection();
+// 2. HTTPS Redirection - Only in development (Render handles SSL at proxy level)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // 3. Request Logging Middleware - Log all incoming requests
 app.UseRequestLogging();

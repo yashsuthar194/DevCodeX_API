@@ -19,37 +19,37 @@ var app = builder.Build();
 // Auto-Apply Database Migrations & Seeding
 // ============================================
 // This will create the database if it doesn't exist, apply pending migrations, and seed data
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<CodeXContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+//using (var scope = app.Services.CreateScope())
+//{
+//    var dbContext = scope.ServiceProvider.GetRequiredService<CodeXContext>();
+//    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
-    try
-    {
-        // Step 1: Apply pending migrations
-        logger.LogInformation("Checking for pending database migrations...");
+//    try
+//    {
+//        // Step 1: Apply pending migrations
+//        logger.LogInformation("Checking for pending database migrations...");
         
-        if (dbContext.Database.GetPendingMigrations().Any())
-        {
-            logger.LogInformation("Applying pending migrations...");
-            dbContext.Database.Migrate();
-            logger.LogInformation("Database migrations applied successfully.");
-        }
-        else
-        {
-            logger.LogInformation("Database is up to date. No migrations needed.");
-        }
+//        if (dbContext.Database.GetPendingMigrations().Any())
+//        {
+//            logger.LogInformation("Applying pending migrations...");
+//            dbContext.Database.Migrate();
+//            logger.LogInformation("Database migrations applied successfully.");
+//        }
+//        else
+//        {
+//            logger.LogInformation("Database is up to date. No migrations needed.");
+//        }
 
-        // Step 2: Run database seeding (only seeds empty tables)
-        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-        await seeder.SeedAllAsync();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
-        throw; // Re-throw to prevent app from starting with a broken database
-    }
-}
+//        // Step 2: Run database seeding (only seeds empty tables)
+//        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+//        await seeder.SeedAllAsync();
+//    }
+//    catch (Exception ex)
+//    {
+//        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+//        throw; // Re-throw to prevent app from starting with a broken database
+//    }
+//}
 
 // ============================================
 // Configure Middleware Pipeline

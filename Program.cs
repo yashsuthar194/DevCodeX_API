@@ -26,40 +26,19 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // Diagnostic: Log connection info
-        logger.LogInformation("=== DATABASE MIGRATION DIAGNOSTICS ===");
-        logger.LogInformation("Database Provider: {Provider}", dbContext.Database.ProviderName);
-        logger.LogInformation("Can Connect: {CanConnect}", dbContext.Database.CanConnect());
+        // Step 1: Apply pending migrations
+        logger.LogInformation("Checking for pending database migrations...");
         
-        // Diagnostic: List all migrations
-        var allMigrations = dbContext.Database.GetMigrations().ToList();
-        logger.LogInformation("Total migrations found in assembly: {Count}", allMigrations.Count);
-        foreach (var migration in allMigrations)
+        if (dbContext.Database.GetPendingMigrations().Any())
         {
-            logger.LogInformation("  - Migration: {MigrationName}", migration);
+            logger.LogInformation("Applying pending migrations...");
+            dbContext.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully.");
         }
-        
-        // Diagnostic: List applied migrations
-        var appliedMigrations = dbContext.Database.GetAppliedMigrations().ToList();
-        logger.LogInformation("Applied migrations in database: {Count}", appliedMigrations.Count);
-        foreach (var migration in appliedMigrations)
+        else
         {
-            logger.LogInformation("  - Applied: {MigrationName}", migration);
+            logger.LogInformation("Database is up to date. No migrations needed.");
         }
-        
-        // Diagnostic: List pending migrations
-        var pendingMigrations = dbContext.Database.GetPendingMigrations().ToList();
-        logger.LogInformation("Pending migrations: {Count}", pendingMigrations.Count);
-        foreach (var migration in pendingMigrations)
-        {
-            logger.LogInformation("  - Pending: {MigrationName}", migration);
-        }
-        
-        // Step 1: Apply migrations
-        logger.LogInformation("Calling Database.Migrate()...");
-        dbContext.Database.Migrate();
-        logger.LogInformation("Database.Migrate() completed successfully.");
-        logger.LogInformation("=== END DIAGNOSTICS ===");
 
         // Step 2: Run database seeding (only seeds empty tables)
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();

@@ -26,19 +26,10 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // Step 1: Apply pending migrations
-        logger.LogInformation("Checking for pending database migrations...");
-        
-        if (dbContext.Database.GetPendingMigrations().Any())
-        {
-            logger.LogInformation("Applying pending migrations...");
-            dbContext.Database.Migrate();
-            logger.LogInformation("Database migrations applied successfully.");
-        }
-        else
-        {
-            logger.LogInformation("Database is up to date. No migrations needed.");
-        }
+        // Step 1: Apply migrations (this handles everything: creates DB, creates tables, tracks history)
+        logger.LogInformation("Applying database migrations...");
+        dbContext.Database.Migrate();
+        logger.LogInformation("Database migrations applied successfully.");
 
         // Step 2: Run database seeding (only seeds empty tables)
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();

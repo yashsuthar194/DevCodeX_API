@@ -1,6 +1,7 @@
 ﻿using DevCodeX_API.Context;
 using DevCodeX_API.Repositories.Implementation;
 using DevCodeX_API.Repositories.Interfaces;
+using DevCodeX_API.Seeds;
 using DevCodeX_API.Services.Implementation;
 using DevCodeX_API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ namespace DevCodeX_API.Helpers
             services.AddDatabaseContext(configuration);
             services.AddRepositories();
             services.AddBusinessServices();
+            services.AddSeeders();
             services.AddCorsPolicy(configuration);
             services.AddApiDocumentation();
             services.AddControllersWithJsonOptions();
@@ -80,6 +82,23 @@ namespace DevCodeX_API.Helpers
             services.AddScoped<IQuestionService, QuestionService>();
             services.AddScoped<IAnswerService, AnswerService>();
             services.AddScoped<IAssetService, AssetService>();
+
+            return services;
+        }
+
+        /// <summary>
+        /// Registers all database seeders.
+        /// Add new seeders here as needed.
+        /// </summary>
+        private static IServiceCollection AddSeeders(this IServiceCollection services)
+        {
+            // Register individual seeders
+            services.AddScoped<ISeeder, TechnologySeeder>();
+            // Add more seeders here as needed:
+            // services.AddScoped<ISeeder, QuestionSeeder>();
+
+            // Register the seeder orchestrator
+            services.AddScoped<DatabaseSeeder>();
 
             return services;
         }

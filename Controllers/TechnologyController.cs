@@ -3,6 +3,7 @@
 // </copyright>
 
 using DevCodeX_API.Data.Constants;
+using DevCodeX_API.Data.DTO_s;
 using DevCodeX_API.Data.Entities;
 using DevCodeX_API.Data.Responses;
 using DevCodeX_API.Data.Shared;
@@ -59,12 +60,12 @@ namespace DevCodeX_API.Controllers
         /// Get paginated list of technologies
         /// </summary>
         [HttpPost("list")]
-        public async Task<Response<List<Technology>>> GetListAsync([FromBody] Filter filter)
+        public async Task<Response<List<TechnologyListDto>>> GetListAsync([FromBody] Filter filter)
         {
             try
             {
                 var result = await _service.GetListAsync(filter);
-                return new Response<List<Technology>>(
+                return new Response<List<TechnologyListDto>>(
                     Status.Succeeded, 
                     HttpStatusCode.OK, 
                     result.Items,
@@ -76,7 +77,7 @@ namespace DevCodeX_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting technology list");
-                return new Response<List<Technology>>(Status.Failed, HttpStatusCode.InternalServerError, ex.Message)
+                return new Response<List<TechnologyListDto>>(Status.Failed, HttpStatusCode.InternalServerError, ex.Message)
                 {
                     IsSuccess = false
                 };

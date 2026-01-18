@@ -1,10 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DevCodeX_API.Context;
 using System.Linq.Expressions;
 
 namespace DevCodeX_API.Repositories.Interfaces
 {
     public interface IBaseRepository<T> where T : class
     {
+        CodeXContext DbContext { get; }
         Task<List<T>> GetAllAsync();
         Task<IQueryable<T>> Where(Expression<Func<T, bool>> expression);
         Task<T?> GetByIdAsync(Guid id);

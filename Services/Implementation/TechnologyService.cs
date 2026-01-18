@@ -1,7 +1,9 @@
-﻿using DevCodeX_API.Data.Entities;
+﻿using DevCodeX_API.Data.DTO_s;
+using DevCodeX_API.Data.Entities;
 using DevCodeX_API.Data.Shared;
 using DevCodeX_API.Repositories.Interfaces;
 using DevCodeX_API.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace DevCodeX_API.Services.Implementation
@@ -20,7 +22,7 @@ namespace DevCodeX_API.Services.Implementation
             return (await Where(a => !a.IsDeleted)).ToList();
         }
 
-        public async Task<PaginatedList<Technology>> GetListAsync(Filter filter)
+        public async Task<PaginatedList<TechnologyListDto>> GetListAsync(Filter filter)
         {
             // Build base query with filters
             IQueryable<Technology> baseQuery = await Where(t => !t.IsDeleted);
@@ -36,13 +38,26 @@ namespace DevCodeX_API.Services.Implementation
             int totalCount = baseQuery.Count();
 
             // Apply pagination and ordering
-            List<Technology> items = baseQuery
-                .OrderByDescending(t => t.CreatedAt)
-                .Skip((filter.PageIndex - 1) * filter.PageSize)
-                .Take(filter.PageSize)
-                .ToList();
+            var result = await baseQuery
+                                .OrderByDescending(t => t.CreatedAt)
+                                .Skip((filter.PageIndex - 1) * filter.PageSize)
+                                .Take(filter.PageSize)
+                                .GroupJoin(
+                                    _repository.DbContext.Questions.Where(q => !q.IsDeleted),
+                                    t => t.Id,
+                                    q => q.TechnologyId,
+                                    (t, questions) => new TechnologyListDto
+                                    {
+                                        Id = t.Id,
+                                        Name = t.Name,
+                                        Description = t.Description,
+                                        TechnologyType = t.TechnologyType,
+                                        QuestionCount = questions.Count(),
+                                        CreatedAt = t.CreatedAt
+                                    })
+                                .ToListAsync();
 
-            return new PaginatedList<Technology>(items, totalCount, filter.PageIndex, filter.PageSize);
+            return new PaginatedList<TechnologyListDto>(result, totalCount, filter.PageIndex, filter.PageSize);
         }
 
         public async Task<Technology?> GetByIdAsync(Guid id)

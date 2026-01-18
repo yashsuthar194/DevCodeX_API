@@ -10,6 +10,6 @@ namespace DevCodeX_API.Data.Entities
         public required string Title { get; set; }
         public string? Description { get; set; }
         public Guid TechnologyId { get; set; }
-        public DifficultyLevel DifficultyLevel { get; set; } 
+        public DifficultyLevel DifficultyLevel { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using DevCodeX_API.Data.Entities;
+﻿using DevCodeX_API.Data.DTO_s;
+using DevCodeX_API.Data.Entities;
 using DevCodeX_API.Data.Shared;
 using System.Linq.Expressions;
 
@@ -7,7 +8,7 @@ namespace DevCodeX_API.Services.Interfaces
     public interface ITechnologyService
     {
         Task<List<Technology>> GetAllAsync();
-        Task<PaginatedList<Technology>> GetListAsync(Filter filter);
+        Task<PaginatedList<TechnologyListDto>> GetListAsync(Filter filter);
         Task<Technology?> GetByIdAsync(Guid id);
         Task<Technology> CreateAsync(Technology entity);
         Task<Technology?> UpdateAsync(Guid id, Technology entity);

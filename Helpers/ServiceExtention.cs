@@ -46,12 +46,18 @@ namespace DevCodeX_API.Helpers
 
             services.AddDbContext<CodeXContext>(options =>
             {
-                options.UseNpgsql(connectionString);
+                options.UseNpgsql(connectionString, npgsqlOptions =>
+                {
+                    // Store migration history in 'dbo' schema (same as entity tables)
+                    // This prevents schema mismatch between __EFMigrationsHistory (public) and entity tables (dbo)
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "dbo");
+                });
                 
                 // Enable sensitive data logging in development
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
             });
+
 
             return services;
         }

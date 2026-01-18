@@ -19,37 +19,68 @@ var app = builder.Build();
 // Auto-Apply Database Migrations & Seeding
 // ============================================
 // This will create the database if it doesn't exist, apply pending migrations, and seed data
-//using (var scope = app.Services.CreateScope())
-//{
-//    var dbContext = scope.ServiceProvider.GetRequiredService<CodeXContext>();
-//    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CodeXContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
-//    try
-//    {
-//        // Step 1: Apply pending migrations
-//        logger.LogInformation("Checking for pending database migrations...");
-        
-//        if (dbContext.Database.GetPendingMigrations().Any())
-//        {
-//            logger.LogInformation("Applying pending migrations...");
-//            dbContext.Database.Migrate();
-//            logger.LogInformation("Database migrations applied successfully.");
-//        }
-//        else
-//        {
-//            logger.LogInformation("Database is up to date. No migrations needed.");
-//        }
-
-//        // Step 2: Run database seeding (only seeds empty tables)
-//        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-//        await seeder.SeedAllAsync();
-//    }
-//    catch (Exception ex)
-//    {
-//        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
-//        throw; // Re-throw to prevent app from starting with a broken database
-//    }
-//}
+    try
+    {
+        // Check database connectivity first
+        if (!await dbContext.Database.CanConnectAsync())
+        {
+            logger.LogWarning("Cannot connect to database. Skipping migrations and seeding.");
+        }
+        else
+        {
+            // Get pending migrations
+            var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+            
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation("Found {Count} pending migrations: {Migrations}", 
+                    pendingMigrations.Count, string.Join(", ", pendingMigrations));
+                
+                try
+                {
+                    await dbContext.Database.MigrateAsync();
+                    logger.LogInformation("Database migrations applied successfully.");
+                }
+                catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P07") // 42P07 = relation already exists
+                {
+                    // Tables already exist but migration wasn't tracked
+                    // This can happen if tables were created manually or migration history was cleared
+                    logger.LogWarning("Tables already exist (Error: {Message}). Marking migrations as applied...", ex.MessageText);
+                    
+                    // Mark pending migrations as applied to prevent future crashes
+                    foreach (var migration in pendingMigrations)
+                    {
+                        var sql = @"
+                            INSERT INTO dbo.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
+                            VALUES ({0}, {1}) 
+                            ON CONFLICT DO NOTHING";
+                        await dbContext.Database.ExecuteSqlRawAsync(sql, migration, "8.0.4");
+                        logger.LogInformation("Marked migration as applied: {Migration}", migration);
+                    }
+                }
+            }
+            else
+            {
+                logger.LogInformation("Database is up to date. No migrations needed.");
+            }
+            
+            // Run database seeding (only seeds empty tables)
+            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+            await seeder.SeedAllAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        // Log error but don't crash the API - let it start anyway
+        // This allows the API to be debugged and database issues to be fixed manually
+        logger.LogError(ex, "An error occurred while migrating or seeding the database. API will continue starting.");
+    }
+}
 
 // ============================================
 // Configure Middleware Pipeline

@@ -26,53 +26,39 @@ await using (var scope = app.Services.CreateAsyncScope())
     
     try
     {
-        // Check database connectivity first
-        if (!await dbContext.Database.CanConnectAsync())
+        // MigrateAsync() will:
+        // 1. Create the database if it doesn't exist
+        // 2. Create __EFMigrationsHistory table if needed
+        // 3. Apply all pending migrations
+        logger.LogInformation("Applying database migrations (will create database if needed)...");
+        
+        try
         {
-            logger.LogWarning("Cannot connect to database. Skipping migrations and seeding.");
+            await dbContext.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied successfully.");
         }
-        else
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P07") // 42P07 = relation already exists
         {
-            // Get pending migrations
+            // Tables already exist but migration wasn't tracked
+            // This can happen if tables were created manually or migration history was cleared
+            logger.LogWarning("Tables already exist (Error: {Message}). Marking migrations as applied...", ex.MessageText);
+            
+            // Get pending migrations and mark them as applied
             var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
-            
-            if (pendingMigrations.Any())
+            foreach (var migration in pendingMigrations)
             {
-                logger.LogInformation("Found {Count} pending migrations: {Migrations}", 
-                    pendingMigrations.Count, string.Join(", ", pendingMigrations));
-                
-                try
-                {
-                    await dbContext.Database.MigrateAsync();
-                    logger.LogInformation("Database migrations applied successfully.");
-                }
-                catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P07") // 42P07 = relation already exists
-                {
-                    // Tables already exist but migration wasn't tracked
-                    // This can happen if tables were created manually or migration history was cleared
-                    logger.LogWarning("Tables already exist (Error: {Message}). Marking migrations as applied...", ex.MessageText);
-                    
-                    // Mark pending migrations as applied to prevent future crashes
-                    foreach (var migration in pendingMigrations)
-                    {
-                        var sql = @"
-                            INSERT INTO dbo.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
-                            VALUES ({0}, {1}) 
-                            ON CONFLICT DO NOTHING";
-                        await dbContext.Database.ExecuteSqlRawAsync(sql, migration, "8.0.4");
-                        logger.LogInformation("Marked migration as applied: {Migration}", migration);
-                    }
-                }
+                var sql = @"
+                    INSERT INTO dbo.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
+                    VALUES ({0}, {1}) 
+                    ON CONFLICT DO NOTHING";
+                await dbContext.Database.ExecuteSqlRawAsync(sql, migration, "8.0.4");
+                logger.LogInformation("Marked migration as applied: {Migration}", migration);
             }
-            else
-            {
-                logger.LogInformation("Database is up to date. No migrations needed.");
-            }
-            
-            // Run database seeding (only seeds empty tables)
-            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-            await seeder.SeedAllAsync();
         }
+        
+        // Run database seeding (only seeds empty tables)
+        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAllAsync();
     }
     catch (Exception ex)
     {

@@ -74,11 +74,10 @@ namespace DevCodeX_API.Services.Implementation
                 throw new Exception("Asset not found");
             }
 
-            entity.Id = id;
-            entity.UpdatedAt = DateTime.UtcNow;
-            entity.CreatedAt = existing.CreatedAt;
+            existing.UpdatedAt = DateTime.UtcNow;
+            existing.CreatedAt = existing.CreatedAt;
 
-            return await _repository.UpdateAsync(id, entity);
+            return await _repository.UpdateAsync(id, existing);
         }
 
         public async Task<bool> DeleteAsync(Guid id)

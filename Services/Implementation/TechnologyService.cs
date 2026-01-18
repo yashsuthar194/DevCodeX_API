@@ -75,11 +75,13 @@ namespace DevCodeX_API.Services.Implementation
                 throw new Exception("Technology not found");
             }
 
-            entity.Id = id;
-            entity.UpdatedAt = DateTime.UtcNow;
-            entity.CreatedAt = existing.CreatedAt;
+            // Update the existing tracked entity's properties instead of attaching a new entity
+            existing.Name = entity.Name;
+            existing.Description = entity.Description;
+            existing.TechnologyType = entity.TechnologyType;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-            return await _repository.UpdateAsync(id, entity);
+            return await _repository.UpdateAsync(id, existing);
         }
 
         public async Task<bool> DeleteAsync(Guid id)

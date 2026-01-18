@@ -145,11 +145,13 @@ namespace DevCodeX_API.Services.Implementation
                 throw new Exception("Question not found");
             }
 
-            entity.Id = id;
-            entity.UpdatedAt = DateTime.UtcNow;
-            entity.CreatedAt = existing.CreatedAt;
+            existing.Title = entity.Title;
+            existing.Description = entity.Description;
+            existing.TechnologyId = entity.TechnologyId;
+            existing.DifficultyLevel = entity.DifficultyLevel;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-            return await _repository.UpdateAsync(id, entity);
+            return await _repository.UpdateAsync(id, existing);
         }
 
         /// <summary>
